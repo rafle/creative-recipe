@@ -15,14 +15,15 @@ from nltk.corpus import stopwords, wordnet as wn
 class Meronymizer:
     STOPS = set(stopwords.words('english')) | set(punctuation)
 
-    def __init__(self, model, ingredients, word=None, bigram_file='uk.lemma.bigrams', encoding='latin1'):
+    def __init__(self, model, ingredients, word=None): 
         self.model = model
         self.ingredients = ingredients
         self.synset = self.establish_synset(word)
         self.meronyms = self.build_model_meronyms(self.synset)
         self.new_ingredients = self.match_meronyms_to_list(self.meronyms, self.ingredients)
         print('corresponding ingredients: ', self.new_ingredients)
-        self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file, encoding)
+        #  self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file, encoding)
+        self.bigram_dict = {}
 
     def establish_synset(self, word):
         '''Picks a synset based on wether the user has offered a word or not'''
@@ -281,5 +282,9 @@ class Meronymizer:
 
     def find_corresponding_verb(self, word, verb):
         '''Finds semantically similar verbs to the one given'''
+        if not self.bigram_dict:
+            self.bigram_dict = self.parse_bigrams(
+                    self.new_ingredients, filename='uk.lemma.bigrams', encoding='latin1'
+                    )
         candidates = list(self.bigram_dict[word].keys())
         return self.model.most_similar_to_given(verb, candidates)
