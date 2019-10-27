@@ -5,8 +5,26 @@ from nltk import word_tokenize
 from nltk.corpus import brown
 import random
 
-
 nlp = spacy.load("en_core_web_sm")
+
+#Meri edit starts:
+
+
+import pickle
+infile = open("ing_n_instr_dict.pkl",'rb')
+old = pickle.load(infile)
+infile.close()
+
+ingredients_old =[]
+for i in old["ingredients"]:
+    ingredients_old.append(i[0])
+print(ingredients_old)
+ingredients_text_old=old["text_ingredients"]
+steps=old["instructions"]
+ingredients_new=["leg", "arm", "lungs", "head", "intestine", "bone", "toe", "finger", "torso", "skin", "teeth"] #need to replace with meronyms
+
+#Meri edit ends
+
 
 #ingredients_old = ['milk', 'flour', 'yeast', 'eggs', 'cinnamon', 'butter', 'salt' ]
 #ingredients_new = ['stalactite', 'floor', 'stalagmite', 'tile', 'wall', 'cave', 'door']
