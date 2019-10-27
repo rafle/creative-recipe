@@ -112,7 +112,19 @@ for l in instructions_with_adjectives:
     
 recipe_file=recipe_file.replace(" .", ".")
 recipe_file=recipe_file.replace(" ,", ",")      
-print(recipe_file)
+#print(recipe_file)
+
+file1 = open("generated_recipe.txt","a") 
+file1.write(recipe_file)
+file1.close()
+
+
+
+file2=open("original_recipe.txt", "a")
+
+for l in old["original"]:
+    file2.write(l)
+file2.close()
 
 
 #Meri ends
