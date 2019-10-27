@@ -66,17 +66,36 @@ def add_adjectives(steps, ingredients):
 
     return instructions_with_adjectives
 
-#Meri starts
-new_ingredients_text= replace_ingr_in_steps(ingredients_old, ingredients_new, ingredients_text_old)
-#Meri ends
+
 
 new_instructions = replace_ingr_in_steps(ingredients_old, ingredients_new, steps)
-print("Instructions with meronyms:", new_instructions)
+#print("Instructions with meronyms:", new_instructions)
 
 instructions_with_adjectives= add_adjectives(new_instructions, ingredients_new)
-print("Instructions with meronyms and adjectives:", instructions_with_adjectives)
+#print("Instructions with meronyms and adjectives:", instructions_with_adjectives)
 
 
+#Meri starts here
+    
+recipe_file=""
+
+recipe_file+="Title here\n\n"
+for l in new_ingredients_text:
+    recipe_file+=l+"\n"
+    
+
+#print("Ingredients text with meronyms: ", new_ingredients_text)
 
 
+recipe_file+="\n"
+
+for l in instructions_with_adjectives:
+    recipe_file+=l+"\n\n"
+    
+recipe_file=recipe_file.replace(" .", ".")
+recipe_file=recipe_file.replace(" ,", ",")      
+print(recipe_file)
+
+
+#Meri ends
 
