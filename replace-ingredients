@@ -10,7 +10,7 @@ nlp = spacy.load("en_core_web_sm")
 
 #ingredients_old = ['milk', 'flour', 'yeast', 'eggs', 'cinnamon', 'butter', 'salt' ]
 #ingredients_new = ['stalactite', 'floor', 'stalagmite', 'tile', 'wall', 'cave', 'door']
-#instructions_text_old=['1 oz. milk', '2 cups flour', 'stick of yeast', '2 eggs', '1 tbsp. cinnamon', '3 sticks of butter', "pinch of salt']
+#ingredients_text_old=['1 oz. milk', '2 cups flour', 'stick of yeast', '2 eggs', '1 tbsp. cinnamon', '3 sticks of butter', "pinch of salt']
 #steps = ['First, mix the flour with the yeast and add a bit of milk and sugar until you get a smooth mixture', \
 #                'Cover it with a piece of cloth and let it rest in a warm place for half an hour Then add the rest\
 #                 of the milk and the sugar, the eggs, the butter and a pinch of salt, and work it into a smooth dough', \
@@ -67,7 +67,7 @@ def add_adjectives(steps, ingredients):
     return instructions_with_adjectives
 
 #Meri starts
-new_ingredients_text= replace_ingr_in_steps(ingredients_old, ingredients_new, 
+new_ingredients_text= replace_ingr_in_steps(ingredients_old, ingredients_new, ingredients_text_old)
 #Meri ends
 
 new_instructions = replace_ingr_in_steps(ingredients_old, ingredients_new, steps)
