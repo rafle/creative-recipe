@@ -15,18 +15,14 @@ from nltk.corpus import stopwords, wordnet as wn
 class Meronymizer:
     STOPS = set(stopwords.words('english')) | set(punctuation)
 
-    def __init__(self, model, ingredients, word=None, bigram_file='uk.lemma.bigrams'):
+    def __init__(self, model, ingredients, word=None, bigram_file='uk.lemma.bigrams', encoding='latin1'):
         self.model = model
         self.ingredients = ingredients
         self.synset = self.establish_synset(word)
         self.meronyms = self.build_model_meronyms(self.synset)
         self.new_ingredients = self.match_meronyms_to_list(self.meronyms, self.ingredients)
         print('corresponding ingredients: ', self.new_ingredients)
-        try:
-            self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file)
-        except FileNotFoundError:
-            print(f"### Please download and extract the file https://wacky.sslmit.unibo.it/lib/exe/fetch.php?media=frequency_lists:uk.lemma.bigrams.7z")
-            sys.exit()
+        self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file, encoding)
 
     def establish_synset(self, word):
         if not word:
@@ -244,23 +240,30 @@ class Meronymizer:
                 hypernym_set.add(common[0])
         return list(hypernym_set)
 
-    def parse_bigrams(self, wordlist, filename, encoding='latin1'):
+    def read_bigrams(self, filename, encoding):
+        try:
+            with open(filename, encoding=encoding) as f:
+                for line in f:
+                    yield line
+        except FileNotFoundError:
+            print('''### Please download and extract the file 
+                https://wacky.sslmit.unibo.it/lib/exe/fetch.php?media=frequency_lists:uk.lemma.bigrams.7z''')
+
+    def parse_bigrams(self, wordlist, filename, encoding):
         words = set(wordlist)
         bigram_dict = defaultdict(lambda: defaultdict(int))
-        with open(filename, encoding=encoding) as f:
-            print("\nCalculating bigrams\n")
-            for line in f:
-                line = set(line.split()[1:])
-                if line & words:
-                    new_ingredient = line.intersection(words).pop()
-                    try:
-                        other_word = line.difference(words).pop()
-                    except KeyError:
-                        continue
-                    if (other_word in Meronymizer.STOPS
-                            or other_word not in self.model):
-                        continue
-                    bigram_dict[new_ingredient][other_word] += 1
+        for line in self.read_bigrams(filename, encoding):
+            line = set(line.split()[1:])
+            if line & words:
+                new_ingredient = line.intersection(words).pop()
+                try:
+                    other_word = line.difference(words).pop()
+                except KeyError:
+                    continue
+                if (other_word in Meronymizer.STOPS
+                        or other_word not in self.model):
+                    continue
+                bigram_dict[new_ingredient][other_word] += 1
         for ingredient, values_ in deepcopy(bigram_dict).items():
             for word, count in values_.items():
                 if not self.check_pos(word, 'v'):
