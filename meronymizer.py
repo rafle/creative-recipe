@@ -107,6 +107,9 @@ class Meronymizer:
     def get_new_ingredients(self):
         return self.new_ingredients
 
+    def get_synset_name(self):
+        return self.synset.lemma_names()[0]
+
     def input_ingredients(self, ingredient_list):
         self.ingredients = ingredient_list
         self.meronyms = self.build_model_meronyms(self.synset)
@@ -144,10 +147,12 @@ class Meronymizer:
     def match_meronyms_to_list(self, meronyms, matchables):
         '''Input in strings, not synsets. Outputs a list with
            the most similar unique elements from meronym for each matchable'''
-        matrix = np.zeros((len(matchables), len(meronyms)))
-        matched_rows = -np.ones(len(matchables))
+        curated_matchables = [m for m in matchables if m in self.model]
+        not_found = [n for n in matchables if n not in self.model]
+        matrix = np.zeros((len(curated_matchables), len(meronyms)))
+        matched_rows = -np.ones(len(curated_matchables))
         matched_columns = -np.ones(len(meronyms))
-        for n, element in enumerate(matchables):
+        for n, element in enumerate(curated_matchables):
             matrix[n] = self.model.distances(element, meronyms)
         for lowest_value in np.sort(matrix, axis=None):
             row, column = np.argwhere(matrix == lowest_value)[0]
@@ -157,7 +162,10 @@ class Meronymizer:
             matched_columns[column] = row
             if len(matched_rows[matched_rows >= 0]) == len(matched_rows):
                 break
-        return [meronyms[int(i)] for i in matched_rows]
+        results = [meronyms[int(i)] for i in matched_rows]
+        for n in not_found:
+            results.insert(matchables.index(n), n)
+        return results
 
     def is_meronym_of(self, word, comparator='container', pos=wn.NOUN):
         comparator = wn.synsets(comparator, pos=pos)[0]
