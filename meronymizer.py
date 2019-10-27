@@ -147,8 +147,10 @@ class Meronymizer:
     def match_meronyms_to_list(self, meronyms, matchables):
         '''Input in strings, not synsets. Outputs a list with
            the most similar unique elements from meronym for each matchable'''
+        # This is a hack. Unknown meronyms should not come this far
+        meronyms = [m for m in meronyms if m in self.model]
         curated_matchables = [m for m in matchables if m in self.model]
-        not_found = [n for n in matchables if n not in self.model]
+        not_found = [n for n in matchables if n not in curated_matchables]
         matrix = np.zeros((len(curated_matchables), len(meronyms)))
         matched_rows = -np.ones(len(curated_matchables))
         matched_columns = -np.ones(len(meronyms))
