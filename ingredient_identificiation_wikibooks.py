@@ -141,25 +141,26 @@ def get_ingredients(lines):
             if len(fin_ingredient)>0 and fin_ingredient not in final_ingredient_list:
                 final_ingredient_list.append(fin_ingredient)
         
-
-    return final_ingredient_list, steps_cleaned, ingredients_orig_cleaned, lines
+    fin_dict={"ingredients": final_ingredient_list, "text_ingredients": ingredients_orig_cleaned, "instructions": steps_cleaned, "original": lines}
+    return fin_dict   
 
 
             
     
     
     
-recipes=open_file("recipes.txt")
-ingredients, instructions, ing_orig, orig_recipe=get_ingredients(random.choice(recipes))
+#recipes=open_file("recipes.txt")
+#ingredients, instructions, ing_orig, orig_recipe=get_ingredients(random.choice(recipes))
 
 #The program saves a dictionary with four keys.
 
-fin_dict={"ingredients": ingredients, "text_ingredients": ing_orig, "instructions": instructions, "original": orig_recipe }
+#fin_dict={"ingredients": ingredients, "text_ingredients": ing_orig, "instructions": instructions, "original": orig_recipe }
 
+#return(fin_dict)
 
-f = open("ing_n_instr_dict.pkl","wb")
-pickle.dump(fin_dict,f)
-f.close()
+#f = open("ing_n_instr_dict.pkl","wb")
+#pickle.dump(fin_dict,f)
+#f.close()
 
 
 

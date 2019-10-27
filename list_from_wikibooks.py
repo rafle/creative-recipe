@@ -38,6 +38,6 @@ def open_file(filename):
 recipes=open_file("Wikibooks-20191025080703.xml")
 
 
-with open("recipes2.txt", "wb") as fp: 
-    pickle.dump(recipes, fp)
+#with open("recipes2.txt", "wb") as fp: 
+#    pickle.dump(recipes, fp)
 
