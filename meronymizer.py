@@ -15,28 +15,25 @@ from nltk.corpus import stopwords, wordnet as wn
 class Meronymizer:
     STOPS = set(stopwords.words('english')) | set(punctuation)
 
-    def __init__(self, model, ingredients, word=None, bigram_file='uk.lemma.bigrams'):
+    def __init__(self, model, ingredients, word=None): 
         self.model = model
         self.ingredients = ingredients
         self.synset = self.establish_synset(word)
         self.meronyms = self.build_model_meronyms(self.synset)
         self.new_ingredients = self.match_meronyms_to_list(self.meronyms, self.ingredients)
         print('corresponding ingredients: ', self.new_ingredients)
-        try:
-            self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file)
-        except FileNotFoundError:
-            print(f"### Please download and extract the file https://wacky.sslmit.unibo.it/lib/exe/fetch.php?media=frequency_lists:uk.lemma.bigrams.7z")
-            sys.exit()
+        #  self.bigram_dict = self.parse_bigrams(self.new_ingredients, bigram_file, encoding)
+        self.bigram_dict = {}
 
     def establish_synset(self, word):
+        '''Picks a synset based on wether the user has offered a word or not'''
         if not word:
             synset = self.pick_random_synset()
             print(f"random word: {synset.name()}")
             return synset
-        else:
-            synset = self.pick_similar_synset(word, len(self.ingredients))
-            print(f"the word is {synset.name()}")
-            return synset
+        synset = self.pick_similar_synset(word, len(self.ingredients))
+        print(f"the word is {synset.name()}")
+        return synset
 
     def find_suitable_synsets(self, min_number_meronyms=5):
         print('Building synset list\n')
@@ -65,6 +62,7 @@ class Meronymizer:
         return wn.synsets(self.switch_name(most_similar))[0]
 
     def switch_name(self, word):
+        '''Switches plain text names between gensin and WordNet formats'''
         if '_' in word:
             return word.replace('_', '::')
         if '::' in word:
@@ -107,6 +105,9 @@ class Meronymizer:
     def get_new_ingredients(self):
         return self.new_ingredients
 
+    def get_synset_name(self):
+        return self.synset.lemma_names()[0]
+
     def input_ingredients(self, ingredient_list):
         self.ingredients = ingredient_list
         self.meronyms = self.build_model_meronyms(self.synset)
@@ -114,6 +115,8 @@ class Meronymizer:
         return self.new_ingredients
 
     def build_model_meronyms(self, synset, target='n', augment=2):
+        '''Fetches meronyms for a given synset. It should also filter out words
+           unknown by the gensim model'''
         approved_meronyms = {self.find_representative(synset, part_meronym.lemma_names())
                              for part_meronym in synset.part_meronyms()}
         approved_meronyms = approved_meronyms - {None}
@@ -144,10 +147,14 @@ class Meronymizer:
     def match_meronyms_to_list(self, meronyms, matchables):
         '''Input in strings, not synsets. Outputs a list with
            the most similar unique elements from meronym for each matchable'''
-        matrix = np.zeros((len(matchables), len(meronyms)))
-        matched_rows = -np.ones(len(matchables))
+        # This is a hack. Unknown meronyms should not come this far
+        meronyms = [m for m in meronyms if m in self.model]
+        curated_matchables = [m for m in matchables if m in self.model]
+        not_found = [n for n in matchables if n not in curated_matchables]
+        matrix = np.zeros((len(curated_matchables), len(meronyms)))
+        matched_rows = -np.ones(len(curated_matchables))
         matched_columns = -np.ones(len(meronyms))
-        for n, element in enumerate(matchables):
+        for n, element in enumerate(curated_matchables):
             matrix[n] = self.model.distances(element, meronyms)
         for lowest_value in np.sort(matrix, axis=None):
             row, column = np.argwhere(matrix == lowest_value)[0]
@@ -157,9 +164,13 @@ class Meronymizer:
             matched_columns[column] = row
             if len(matched_rows[matched_rows >= 0]) == len(matched_rows):
                 break
-        return [meronyms[int(i)] for i in matched_rows]
+        results = [meronyms[int(i)] for i in matched_rows]
+        for n in not_found:
+            results.insert(matchables.index(n), n)
+        return results
 
     def is_meronym_of(self, word, comparator='container', pos=wn.NOUN):
+        '''Not in use'''
         comparator = wn.synsets(comparator, pos=pos)[0]
         for synset in wn.synsets(word, pos=pos):
             for path in synset.hypernym_paths():
@@ -225,6 +236,7 @@ class Meronymizer:
         return results[0] if results else None
 
     def find_closest_hypernyms(self, word1, word2):
+        '''As the name indicates. Not in use'''
         hypernym_set = set()
         word1 = wn.synsets(word1)
         word2 = wn.synsets(word2)
@@ -234,23 +246,33 @@ class Meronymizer:
                 hypernym_set.add(common[0])
         return list(hypernym_set)
 
-    def parse_bigrams(self, wordlist, filename, encoding='latin1'):
+    def read_bigrams(self, filename, encoding):
+        '''Reads the bigram file and yields its lines'''
+        try:
+            with open(filename, encoding=encoding) as f:
+                for line in f:
+                    yield line
+        except FileNotFoundError:
+            print('''### Please download and extract the file 
+                https://wacky.sslmit.unibo.it/lib/exe/fetch.php?media=frequency_lists:uk.lemma.bigrams.7z''')
+
+    def parse_bigrams(self, wordlist, filename, encoding):
+        '''Builds a dictionary of collocations and frequencies (it doesn't matter 
+           in which direction the words are placed) for the words given'''
         words = set(wordlist)
         bigram_dict = defaultdict(lambda: defaultdict(int))
-        with open(filename, encoding=encoding) as f:
-            print("\nCalculating bigrams\n")
-            for line in f:
-                line = set(line.split()[1:])
-                if line & words:
-                    new_ingredient = line.intersection(words).pop()
-                    try:
-                        other_word = line.difference(words).pop()
-                    except KeyError:
-                        continue
-                    if (other_word in Meronymizer.STOPS
-                            or other_word not in self.model):
-                        continue
-                    bigram_dict[new_ingredient][other_word] += 1
+        for line in self.read_bigrams(filename, encoding):
+            line = set(line.split()[1:])
+            if line & words:
+                new_ingredient = line.intersection(words).pop()
+                try:
+                    other_word = line.difference(words).pop()
+                except KeyError:
+                    continue
+                if (other_word in Meronymizer.STOPS
+                        or other_word not in self.model):
+                    continue
+                bigram_dict[new_ingredient][other_word] += 1
         for ingredient, values_ in deepcopy(bigram_dict).items():
             for word, count in values_.items():
                 if not self.check_pos(word, 'v'):
@@ -259,5 +281,10 @@ class Meronymizer:
         return bigram_dict
 
     def find_corresponding_verb(self, word, verb):
+        '''Finds semantically similar verbs to the one given'''
+        if not self.bigram_dict:
+            self.bigram_dict = self.parse_bigrams(
+                    self.new_ingredients, filename='uk.lemma.bigrams', encoding='latin1'
+                    )
         candidates = list(self.bigram_dict[word].keys())
         return self.model.most_similar_to_given(verb, candidates)
